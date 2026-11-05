@@ -1,0 +1,37 @@
+{
+  "description": "Real Gmail API 400 failedPrecondition for users.messages.get, copied from logs/micro_gmail_backup.log. It hit one message once in about 43,700 downloads; a manual retry of the same request minutes later returned 200. The message ID is replaced with a placeholder; no request headers or credentials are recorded.",
+  "logged_at": "2026-11-04 01:15:43,039",
+  "request": {
+    "method": "GET",
+    "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages/<message-id>?format=raw&fields=id%2CthreadId%2ClabelIds%2CinternalDate%2Craw"
+  },
+  "response": {
+    "status": 400,
+    "headers": {
+      "vary": "Origin, X-Origin, Referer",
+      "content-type": "application/json; charset=UTF-8",
+      "content-encoding": "gzip",
+      "date": "Tue, 03 Nov 2026 21:15:42 GMT",
+      "server": "ESF",
+      "x-xss-protection": "0",
+      "x-frame-options": "SAMEORIGIN",
+      "x-content-type-options": "nosniff",
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "transfer-encoding": "chunked"
+    },
+    "body": {
+      "error": {
+        "code": 400,
+        "message": "Precondition check failed.",
+        "errors": [
+          {
+            "message": "Precondition check failed.",
+            "domain": "global",
+            "reason": "failedPrecondition"
+          }
+        ],
+        "status": "FAILED_PRECONDITION"
+      }
+    }
+  }
+}

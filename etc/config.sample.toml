@@ -1,0 +1,21 @@
+# Copy to etc/config.toml next to this file (or point MICRO_GMAIL_BACKUP_CONFIG at another file).
+# Every key is optional and the values below are the defaults.
+# Relative paths resolve against the script directory, wherever the script is run from.
+
+# Gmail account to back up. No default: set it here or pass it as argv[1], which wins.
+# account_email = "you@example.com"
+
+# Archives go to <archives_dir>/<account-email>/.
+archives_dir = "backups"
+
+# OAuth tokens go to <auth_dir>/<account-email>.json; must be outside the archive.
+auth_dir = "etc/auth"
+
+# Desktop-app OAuth client from the Google Cloud console; used only when there is no token yet.
+client_secret_file = "etc/client-secret.json"
+
+# The log goes to <logs_dir>/<account-email>.log (MICRO_GMAIL_BACKUP_LOG, a file path, overrides it).
+logs_dir = "logs"
+
+# Seconds each request may keep retrying network errors, quota 403s, 429/5xx and expired tokens.
+retry_budget_seconds = 3600

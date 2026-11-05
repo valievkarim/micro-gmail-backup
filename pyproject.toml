@@ -1,0 +1,37 @@
+[project]
+name = "micro-gmail-backup"
+version = "0.1.0"
+description = "Sequential Gmail backup to content-hashed files"
+requires-python = ">=3.11"
+dependencies = [
+    "beartype>=0.23",
+    "httpx>=0.28",
+    "google-auth>=2.62",
+    "google-auth-oauthlib>=1.5",
+    "requests>=2.34",
+    "zstandard>=0.25",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "black>=24.0",
+    "ruff>=0.4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.black]
+line-length = 200
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 200
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "BLE", "I", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = []

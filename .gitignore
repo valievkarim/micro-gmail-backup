@@ -1,0 +1,21 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+# Live run layout: local config, default archive, token/secret store,
+# scratch space, and anything that could hold real mail or secrets.
+backups/
+# All of etc/ except the sample; "etc/" itself would exclude the directory and block the negation.
+etc/*
+!etc/config.sample.toml
+logs/
+*~
+\#*\#
+\.#*
+.DS_Store
+/.idea/
+/.vscode/
+backups-old/
+logs-old/

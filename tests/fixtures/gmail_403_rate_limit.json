@@ -1,0 +1,63 @@
+{
+  "description": "Real Gmail API 403 for messages.get when the per-user per-minute quota (default 6000) ran out, copied from logs/micro_gmail_backup.log. The message ID and project number are replaced with placeholders; no request headers or credentials are recorded.",
+  "logged_at": "2026-11-03 21:00:04,966",
+  "request": {
+    "method": "GET",
+    "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages/<message-id>?format=raw&fields=id%2CthreadId%2ClabelIds%2CinternalDate%2Craw"
+  },
+  "response": {
+    "status": 403,
+    "headers": {
+      "vary": "Origin, X-Origin, Referer",
+      "content-type": "application/json; charset=UTF-8",
+      "content-encoding": "gzip",
+      "date": "Tue, 03 Nov 2026 17:00:04 GMT",
+      "server": "ESF",
+      "x-xss-protection": "0",
+      "x-frame-options": "SAMEORIGIN",
+      "x-content-type-options": "nosniff",
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "transfer-encoding": "chunked"
+    },
+    "body": {
+      "error": {
+        "code": 403,
+        "message": "Quota exceeded for quota metric 'Total Query Cost' and limit 'Units per minute per user' of service 'gmail.googleapis.com' for consumer 'project_number:123456789012'.",
+        "errors": [
+          {
+            "message": "Quota exceeded for quota metric 'Total Query Cost' and limit 'Units per minute per user' of service 'gmail.googleapis.com' for consumer 'project_number:123456789012'.",
+            "domain": "usageLimits",
+            "reason": "rateLimitExceeded"
+          }
+        ],
+        "status": "PERMISSION_DENIED",
+        "details": [
+          {
+            "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+            "reason": "RATE_LIMIT_EXCEEDED",
+            "domain": "googleapis.com",
+            "metadata": {
+              "quota_limit_value": "6000",
+              "consumer": "projects/123456789012",
+              "quota_unit": "1/min/{project}/{user}",
+              "quota_location": "global",
+              "quota_limit": "totalQueryCostPerMinutePerUser",
+              "quota_metric": "gmail.googleapis.com/total_query_cost",
+              "service": "gmail.googleapis.com",
+              "window_start_time": "1793725148"
+            }
+          },
+          {
+            "@type": "type.googleapis.com/google.rpc.Help",
+            "links": [
+              {
+                "description": "Request a higher quota limit.",
+                "url": "https://cloud.google.com/docs/quotas/help/request_increase"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

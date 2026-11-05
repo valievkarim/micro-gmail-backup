@@ -1,0 +1,41 @@
+{
+  "description": "Real Gmail API 401 for messages.get after the access token expired mid-run, copied from logs/micro_gmail_backup.log. The message ID is replaced with a placeholder; no request headers or credentials are recorded.",
+  "logged_at": "2026-11-02 09:04:29,643",
+  "context": "Returned after 7 consecutive rate-limit 403 retries on the same message.",
+  "request": {
+    "method": "GET",
+    "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages/<message-id>?format=raw&fields=id%2CthreadId%2ClabelIds%2CinternalDate%2Craw"
+  },
+  "response": {
+    "status": 401,
+    "headers": {
+      "www-authenticate": "Bearer realm=\"https://accounts.google.com/\", error=\"invalid_token\"",
+      "vary": "Origin, X-Origin, Referer",
+      "content-type": "application/json; charset=UTF-8",
+      "content-encoding": "gzip",
+      "date": "Mon, 02 Nov 2026 05:04:29 GMT",
+      "server": "ESF",
+      "x-xss-protection": "0",
+      "x-frame-options": "SAMEORIGIN",
+      "x-content-type-options": "nosniff",
+      "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+      "transfer-encoding": "chunked"
+    },
+    "body": {
+      "error": {
+        "code": 401,
+        "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+        "errors": [
+          {
+            "message": "Invalid Credentials",
+            "domain": "global",
+            "reason": "authError",
+            "location": "Authorization",
+            "locationType": "header"
+          }
+        ],
+        "status": "UNAUTHENTICATED"
+      }
+    }
+  }
+}
