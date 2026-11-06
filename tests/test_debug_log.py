@@ -28,7 +28,7 @@ def test_headers_logged_to_file_error_body_too_but_never_raw_mime(tmp_path: Path
     quota = {"__status__": 403, "__body__": {"error": {"errors": [{"reason": "rateLimitExceeded", "message": "Rate Limit Exceeded"}]}}}
     listing = [{"messages": [{"id": "a1", "threadId": "f1"}], "resultSizeEstimate": 1}]
 
-    proc = run_case(str(case), script_for(listing, {"a1": [quota, raw_message("a1", ["INBOX"], RAW_A)]}), extra_env={"MICRO_GMAIL_BACKUP_DEBUG": "1"})
+    proc = run_case(str(case), script_for(listing, {"a1": [quota, raw_message("a1", ["INBOX"], RAW_A)]}), args=["--debug"])
 
     assert proc.returncode == 0, proc.stderr
     log = (case / "backup.log").read_text()

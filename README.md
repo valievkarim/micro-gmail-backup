@@ -35,13 +35,15 @@ On the first run the script opens a browser to sign in and grant read-only acces
 .venv/bin/python micro_gmail_backup.py you@example.com
 ```
 
-The email can also come from `account_email` in `etc/config.toml`; the argument wins. The config is read from the script's `etc/` (override with `MICRO_GMAIL_BACKUP_CONFIG`), and relative paths in it resolve against the script directory, so the script behaves the same from any working directory. Each run:
+The email can also come from `account_email` in `etc/config.toml`; the argument wins. The config is read from the script's `etc/` (override with `--config PATH`, which must exist), and relative paths in it resolve against the script directory, so the script behaves the same from any working directory. Each run:
 
 1. locks the archive and checks the token belongs to that account,
 2. saves the label names and every listing page,
 3. verifies each message already on disk and downloads the rest.
 
-Exit codes: `0` when the backup is complete, `1` on any failure, `130` when interrupted. After a failure or interruption, run it again: messages already saved are verified and skipped, and the rest are downloaded. A message deleted from Gmail after it was listed but before it was downloaded can't be backed up; that is logged and doesn't count as a failure.
+For unattended runs (cron, launchd) add `--non-interactive`: without a token the run fails instead of opening a browser. `--help` lists all options.
+
+Exit codes: `0` when the backup is complete, `1` on any failure, `2` for invalid arguments, `130` when interrupted. After a failure or interruption, run it again: messages already saved are verified and skipped, and the rest are downloaded. A message deleted from Gmail after it was listed but before it was downloaded can't be backed up; that is logged and doesn't count as a failure.
 
 Network errors, per-minute quota 403s, 429/5xx responses, expired tokens and the occasional 400 `failedPrecondition` on a message download are retried with backoff (1s, ×1.5, up to 120s) for up to `retry_budget_seconds` per request. Everything else, including corruption on disk, stops the run with a traceback.
 
@@ -88,4 +90,4 @@ The mbox is not a second copy of the backup:
 
 ## Logs
 
-The log goes to the terminal and to `logs/<account-email>.log`, one file per account (set `logs_dir` in `etc/config.toml`, or a full file path with `MICRO_GMAIL_BACKUP_LOG`). Errors before the account is known, such as a malformed config, appear only in the terminal. Set `MICRO_GMAIL_BACKUP_DEBUG=1` to add response headers and error bodies.
+The log goes to the terminal and to `logs/<account-email>.log`, one file per account (set `logs_dir` in `etc/config.toml`, or a full file path with `--log-file PATH`). Errors before the account is known, such as a malformed config, appear only in the terminal. Add `--debug` to log response headers and error bodies.

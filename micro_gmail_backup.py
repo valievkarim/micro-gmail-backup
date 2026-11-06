@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
-"""Sequential Gmail backup to content-hashed files.
+"""Back up a Gmail account through the Gmail REST API, one message at a time.
 
-Run `python micro_gmail_backup.py [account-email]` with an optional etc/config.toml
-(MICRO_GMAIL_BACKUP_CONFIG overrides its path). Paths resolve against the script
-directory: etc/ for the token and client-secret files, the archive defaults to
-backups/<account-email>/ so each account gets its own subdirectory, and the log
-to logs/<account-email>.log. The account email comes from
-argv[1] or config.toml account_email (argv wins) and is required. When the
-token file does not exist, the script runs the installed-app browser
-consent flow itself and saves the token. Exits 0 only when every known
-message has a verified body/metadata pair. MICRO_GMAIL_BACKUP_DEBUG=1 adds
-response headers and error bodies to the log.
+Never changes or deletes anything in Gmail, and never deletes messages from the
+backup, even ones later deleted from Gmail. See README.md for setup.
+
+    .venv/bin/python micro_gmail_backup.py you@example.com
+
+The account can also come from account_email in etc/config.toml; the argument
+wins. The first run opens a browser to sign in; with --non-interactive it fails
+instead, for cron or launchd. --help lists all options.
+
+Exit codes: 0 when the backup is complete, 1 on any failure, 2 for invalid
+arguments, 130 when interrupted.
 """
 
+import argparse
 import base64
 import fcntl
 import hashlib
@@ -215,6 +217,7 @@ class MicroGmailBackup:
     client: httpx.Client = field(init=False)
     creds: Credentials = field(init=False)
     last_response: httpx.Response | None = field(default=None, init=False, repr=False)
+    non_interactive: bool = field(default=False, init=False)
 
     def __post_init__(self) -> None:
         # Gmail addresses are case-insensitive; one spelling keeps one archive and one token per account.
@@ -231,6 +234,10 @@ class MicroGmailBackup:
         """Load stored credentials; only a missing file runs consent. Expired ones are refreshed by the first request."""
         if self.token_path.exists():
             return Credentials.from_authorized_user_info(read_json(self.token_path))
+
+        if self.non_interactive:
+            logger.error("no token at %s; run once without --non-interactive to sign in", self.token_path)
+            raise SystemExit(1)
 
         client_secret = BASE / self.client_secret_file
         assert client_secret.is_file(), f"no token yet and OAuth client file {client_secret} not found; see Setup in README.md"
@@ -495,23 +502,31 @@ def unwrap_saved_page(payload: dict, name: str) -> dict:
 @beartype
 def main() -> int:
     """Run one sequential backup; return the process exit code."""
-    level = logging.DEBUG if os.environ.get("MICRO_GMAIL_BACKUP_DEBUG") == "1" else logging.INFO
-    logging.basicConfig(level=level, format=LOG_FORMAT)
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("account_email", nargs="?", metavar="account-email", help="Gmail address; overrides account_email in the config")
+    parser.add_argument("--config", type=Path, metavar="PATH", help="read settings from PATH, which must exist, instead of etc/config.toml")
+    parser.add_argument("--log-file", type=Path, metavar="PATH", help="write the log to PATH instead of logs/<account-email>.log")
+    parser.add_argument("--debug", action="store_true", help="log response headers and error bodies")
+    parser.add_argument("--non-interactive", action="store_true", help="fail instead of opening the browser when there is no token")
+    args = parser.parse_args()
+
+    logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO, format=LOG_FORMAT)
     logging.getLogger("httpcore").setLevel(logging.INFO)
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
     backup = None
     try:
-        config_path = Path(os.environ.get("MICRO_GMAIL_BACKUP_CONFIG") or BASE / "etc" / "config.toml")
-        config = tomllib.loads(config_path.read_text(encoding="utf-8")) if config_path.is_file() else {}
-        assert len(sys.argv) <= 2, f"usage: {sys.argv[0]} [account-email]"
-        if len(sys.argv) > 1:
-            config["account_email"] = sys.argv[1]
-        assert "account_email" in config, f"account email is required: pass it as argv[1] or set account_email in {config_path}"
+        # A config named with --config must exist; the default one is optional.
+        config_path = args.config or BASE / "etc" / "config.toml"
+        config = tomllib.loads(config_path.read_text(encoding="utf-8")) if args.config or config_path.is_file() else {}
+        if args.account_email is not None:
+            config["account_email"] = args.account_email
+        assert "account_email" in config, f"account email is required: pass it as an argument or set account_email in {config_path}"
         backup = MicroGmailBackup(**config)
+        backup.non_interactive = args.non_interactive
 
         # The file log is per account, so it starts once the config names the account; earlier errors reach only the terminal.
-        log_path = Path(os.environ.get("MICRO_GMAIL_BACKUP_LOG") or BASE / backup.logs_dir / f"{backup.account_email}.log")
+        log_path = args.log_file or BASE / backup.logs_dir / f"{backup.account_email}.log"
         log_path.parent.mkdir(parents=True, exist_ok=True)
         file_log = logging.FileHandler(log_path)
         file_log.setFormatter(logging.Formatter(LOG_FORMAT))

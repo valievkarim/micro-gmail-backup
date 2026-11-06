@@ -5,9 +5,9 @@ subprocess whose PYTHONPATH provides a sitecustomize that routes all of the
 script's httpx traffic through a scripted MockTransport, answers the Google
 OAuth refresh endpoint inside the requests transport, and optionally injects
 local I/O faults. Every HTTP exchange is logged for assertions.
-The script reads <directory>/config.toml through MICRO_GMAIL_BACKUP_CONFIG, and
-its file log is redirected by default to <directory>/backup.log through
-MICRO_GMAIL_BACKUP_LOG, so tests never touch the real config or log.
+The script reads <directory>/config.toml through --config, and its file log is
+redirected by default to <directory>/backup.log through --log-file, so tests
+never touch the real config or log.
 """
 
 import json
@@ -216,8 +216,11 @@ def write_config(
     return path
 
 
-def run_case(directory: str, script: dict, timeout: int = 120, args: list | None = None, extra_env: dict | None = None, backup: str = BACKUP) -> "subprocess.CompletedProcess[str]":
-    """Run the real micro_gmail_backup.py (or a copy at backup) in directory with a scripted mock transport."""
+def run_case(directory: str, script: dict, timeout: int = 120, args: list | None = None, default_paths: bool = False, backup: str = BACKUP) -> "subprocess.CompletedProcess[str]":
+    """Run the real micro_gmail_backup.py (or a copy at backup) in directory with a scripted mock transport.
+
+    Unless default_paths, --config and --log-file point into directory.
+    """
     assert isinstance(directory, str) and isinstance(script, dict)
     fixture = os.path.join(directory, "fixture")
     os.makedirs(fixture, exist_ok=True)
@@ -228,13 +231,10 @@ def run_case(directory: str, script: dict, timeout: int = 120, args: list | None
     env = dict(os.environ)
     env["PYTHONPATH"] = fixture + os.pathsep + env.get("PYTHONPATH", "")
     env["MICRO_GMAIL_MOCK"] = "1"
-    env["MICRO_GMAIL_BACKUP_CONFIG"] = os.path.join(directory, "config.toml")
-    env["MICRO_GMAIL_BACKUP_LOG"] = os.path.join(directory, "backup.log")
     env["no_proxy"] = "*"
     env["NO_PROXY"] = "*"
-    env.pop("MICRO_GMAIL_BACKUP_DEBUG", None)
-    env.update(extra_env or {})
-    return subprocess.run([sys.executable, backup] + list(args or []), cwd=directory, env=env, capture_output=True, text=True, timeout=timeout)
+    paths = [] if default_paths else ["--config", os.path.join(directory, "config.toml"), "--log-file", os.path.join(directory, "backup.log")]
+    return subprocess.run([sys.executable, backup] + paths + list(args or []), cwd=directory, env=env, capture_output=True, text=True, timeout=timeout)
 
 
 def popen_case(directory: str, script: dict) -> "subprocess.Popen[str]":
@@ -249,11 +249,10 @@ def popen_case(directory: str, script: dict) -> "subprocess.Popen[str]":
     env = dict(os.environ)
     env["PYTHONPATH"] = fixture + os.pathsep + env.get("PYTHONPATH", "")
     env["MICRO_GMAIL_MOCK"] = "1"
-    env["MICRO_GMAIL_BACKUP_CONFIG"] = os.path.join(directory, "config.toml")
-    env["MICRO_GMAIL_BACKUP_LOG"] = os.path.join(directory, "backup.log")
     env["no_proxy"] = "*"
     env["NO_PROXY"] = "*"
-    return subprocess.Popen([sys.executable, BACKUP], cwd=directory, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    paths = ["--config", os.path.join(directory, "config.toml"), "--log-file", os.path.join(directory, "backup.log")]
+    return subprocess.Popen([sys.executable, BACKUP] + paths, cwd=directory, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 
 def read_log(directory: str) -> list:

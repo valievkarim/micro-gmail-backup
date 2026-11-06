@@ -1197,8 +1197,8 @@ def test_default_config_is_etc_and_relative_paths_resolve_against_script_dir(tmp
     case = os.path.join(str(tmp_path), "case")
     os.makedirs(case)
     listing = [{"messages": [{"id": "a1", "threadId": "f1"}], "resultSizeEstimate": 1}]
-    # Empty overrides fall back to the defaults: etc/config.toml and <logs_dir>/<account-email>.log.
-    proc = run_case(case, script_for(listing, {"a1": raw_message("a1", ["INBOX"], RAW_A)}), backup=backup, extra_env={"MICRO_GMAIL_BACKUP_CONFIG": "", "MICRO_GMAIL_BACKUP_LOG": ""})
+    # Without --config and --log-file the defaults apply: etc/config.toml and <logs_dir>/<account-email>.log.
+    proc = run_case(case, script_for(listing, {"a1": raw_message("a1", ["INBOX"], RAW_A)}), backup=backup, default_paths=True)
     assert proc.returncode == 0, proc.stderr
     digest = hashlib.sha256(RAW_A).hexdigest()
     assert (repo / "data" / "backups" / ACCOUNT / "messages" / "message-a1" / f"a1.{digest}.eml.zst").is_file()
@@ -1939,6 +1939,52 @@ def test_extra_arguments_are_rejected(tmp_path: Path) -> None:
     write_config(case)
     write_token(os.path.join(case, "auth", f"{ACCOUNT}.json"))
     proc = run_case(case, script_for([{}], {}), args=[ACCOUNT, "other@example.com"])
-    assert proc.returncode == 1, proc.stderr
+    assert proc.returncode == 2, proc.stderr
     assert "usage: " in proc.stderr and "[account-email]" in proc.stderr
     assert "> GET" not in proc.stderr
+
+
+def test_cli_options_config_log_file_debug_and_help(tmp_path: Path) -> None:
+    case = os.path.join(str(tmp_path), "case")
+    os.makedirs(case)
+
+    proc = run_case(case, script_for([{}], {}), args=["--help"])
+    assert proc.returncode == 0, proc.stderr
+    for option in ("--config", "--log-file", "--debug", "--non-interactive", "account-email"):
+        assert option in proc.stdout, option
+
+    # A config named with --config must exist; run_case passes <case>/config.toml, which is not written here.
+    proc = run_case(case, script_for([{}], {}), args=[ACCOUNT])
+    assert proc.returncode == 1, proc.stderr
+    assert "FileNotFoundError" in proc.stderr and os.path.join(case, "config.toml") in proc.stderr
+    assert read_log(case) == []
+
+    # --log-file receives the log, and --debug adds DEBUG lines to it.
+    write_config(case)
+    write_token(os.path.join(case, "auth", f"{ACCOUNT}.json"))
+    listing = [{"messages": [{"id": "a1", "threadId": "f1"}], "resultSizeEstimate": 1}]
+    proc = run_case(case, script_for(listing, {"a1": raw_message("a1", ["INBOX"], RAW_A)}), args=["--debug"])
+    assert proc.returncode == 0, proc.stderr
+    log = open(os.path.join(case, "backup.log"), encoding="utf-8").read()
+    assert "backup completed" in log and " - DEBUG - " in log
+
+
+def test_non_interactive_without_token_fails_without_consent(tmp_path: Path) -> None:
+    case = os.path.join(str(tmp_path), "case")
+    os.makedirs(case)
+    write_client_secret(os.path.join(case, "client-secret.json"))
+    write_config(case, secret="client-secret.json")
+    token_file = os.path.join(case, "auth", f"{ACCOUNT}.json")
+    listing = [{"messages": [{"id": "a1", "threadId": "f1"}], "resultSizeEstimate": 1}]
+    script = script_for(listing, {"a1": raw_message("a1", ["INBOX"], RAW_A)})
+    script["__consent__"] = True
+
+    proc = run_case(case, script, args=["--non-interactive"])
+
+    assert proc.returncode == 1, proc.stderr
+    message = f"no token at {token_file}; run once without --non-interactive to sign in"
+    assert message in proc.stderr
+    assert message in open(os.path.join(case, "backup.log"), encoding="utf-8").read()
+    assert "Traceback" not in proc.stderr
+    assert read_log(case) == [], "consent or a request ran in non-interactive mode"
+    assert not os.path.exists(token_file)
