@@ -1,6 +1,6 @@
 # Micro Gmail backup
 
-Implementation contract. Implementation requested on 2026-10-29.
+Implementation contract.
 
 ## Minimal design
 

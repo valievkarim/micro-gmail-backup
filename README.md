@@ -72,6 +72,20 @@ rg -u --pre ./eml_text.py --pre-glob '*.eml.zst' -i 'invoice' backups/you@exampl
 
 `-u` is needed because `backups/` is in `.gitignore`. Each message starts a Python process, so a full search of 60,000 messages takes several minutes.
 
+## Exporting to mbox
+
+`export_mbox.py` is for checking a backup only: it writes every complete stored message of one account into a single mbox file, oldest first by Gmail's internal date, so the archive can be browsed in Apple Mail (File > Import Mailboxes) or Thunderbird (with the ImportExportTools NG add-on).
+
+```sh
+.venv/bin/python export_mbox.py backups/you@example.com you@example.com.mbox
+```
+
+The mbox is not a second copy of the backup:
+
+- Messages are not preserved byte for byte: line endings become LF and body lines starting with `From ` are quoted mboxrd-style.
+- Labels and unread/starred flags are not exported; everything lands in one folder.
+- Importing a large archive into Apple Mail can be slow, and its progress bar may not move for a long time.
+
 ## Logs
 
 The log goes to the terminal and to `logs/<account-email>.log`, one file per account (set `logs_dir` in `etc/config.toml`, or a full file path with `MICRO_GMAIL_BACKUP_LOG`). Errors before the account is known, such as a malformed config, appear only in the terminal. Set `MICRO_GMAIL_BACKUP_DEBUG=1` to add response headers and error bodies.

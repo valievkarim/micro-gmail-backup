@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""ripgrep --pre helper: print one .eml.zst message as text, with headers and text parts MIME-decoded.
+"""Print one stored .eml.zst message as text, for searching the backup with ripgrep.
 
-With the project's virtualenv active:
-    rg -u --pre ./eml_text.py --pre-glob '*.eml.zst' -i 'pattern' backups/<account-email>/messages
+Headers are decoded, text parts are converted to UTF-8, and attachments appear
+as one line with their type and name. With the virtualenv active:
+
+    rg -u --pre ./eml_text.py --pre-glob '*.eml.zst' -i 'invoice' backups/you@example.com/messages
+    ./eml_text.py backups/you@example.com/messages/message-<id>/<id>.<sha256>.eml.zst | less
 """
 
 import email
